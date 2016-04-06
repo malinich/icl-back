@@ -21,6 +21,6 @@ def catch_error(*, errors: tuple, rise_up: type(Exception), message: dict):
             try:
                 return fn(*args, **kwargs)
             except errors as e:
-                raise rise_up(message)
+                raise rise_up(*e.args if not message else (message,))
         return inside
     return wrap
