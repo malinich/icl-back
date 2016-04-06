@@ -2,8 +2,8 @@ import xlrd
 from rest_framework.exceptions import ValidationError
 from rest_framework.viewsets import ModelViewSet
 
-from app.point.serializers import PointSerializer
-from app.point.utils import save_points
+from .serializers import PointSerializer
+from .utils import save_points, catch_error
 
 
 class PointsView(ModelViewSet):
@@ -11,13 +11,13 @@ class PointsView(ModelViewSet):
     lookup_value_regex = '\d+'
     queryset = PointSerializer.Meta.model.objects.all()
 
+    @catch_error(errors=(IOError, xlrd.XLRDError, ValueError),
+                 rise_up=ValidationError, message={"error": "Not valid file"})
     def perform_create(self, serializer):
+
         file = serializer.validated_data.pop('file')
         name = file.name
-        try:
-            xy = save_points(file.temporary_file_path())
-            points = list(xy)
-        except (IOError, xlrd.XLRDError, ValueError):
-            raise ValidationError({"error": "Can't read file"})
+        xy = save_points(file.temporary_file_path())
+        points = list(xy)
 
         serializer.save(points=points, name=name)
